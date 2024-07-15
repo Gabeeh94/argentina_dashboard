@@ -26,7 +26,7 @@ def request_bcra(id_variable,start_date,end_date):
 
     url = f"{base_url}/{id_variable}/{start_date}/{end_date}"
 
-    response = requests.get(url, verify = 'bcra-gob-ar.pem')  # Set verify=False to ignore SSL verification CHANGE
+    response = requests.get(url, verify = 'bcra-gob-ar.pem')  # Add SSL cert "bcra-gob-ar.pem"
 
     if response.status_code == 200:
 
