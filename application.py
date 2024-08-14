@@ -26,7 +26,7 @@ def request_bcra(id_variable,start_date,end_date):
 
     url = f"{base_url}/{id_variable}/{start_date}/{end_date}"
 
-    response = requests.get(url, verify = 'bcra-gob-ar.pem')  # Add SSL cert "bcra-gob-ar.pem"
+    response = requests.get(url, verify = 'bcra-gob-ar.pem')  # Set verify=False to ignore SSL verification CHANGE
 
     if response.status_code == 200:
 
@@ -43,33 +43,60 @@ def request_bcra(id_variable,start_date,end_date):
         print(f"Request failed with status code {response.status_code}")
         print(response.text)
 
+#Aggregation of monetary aggregates per month
+
+def request_money_data(id_variable):
+    # API Parameters for Base Money BCRA API endpoint
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=365)
+
+    # Requesting the base money data from the BCRA API and cleaning the resulting dataframe
+    df = request_bcra(id_variable,start_date,end_date)
+
+    df.drop('idVariable',axis=1,inplace=True)
+
+    df['fecha'] = pd.to_datetime(df['fecha'])
+
+    df.set_index('fecha', inplace=True)
+
+    return df
+
+def monthly_variation(df):
+    # Resample to get the last value of each month
+    monthly_df = df.resample('ME').mean()
+
+    # Calculate the percentage variation month-over-month
+    monthly_df['monthly_variation'] = monthly_df['valor'].pct_change()
+
+    monthly_df.reset_index(inplace=True)
+
+    monthly_df =  monthly_df[1:]
+
+    monthly_df['fecha'] = monthly_df['fecha'] - timedelta(days = 28)
+
+    return monthly_df
+
+monthly_deposits = monthly_variation(request_money_data(21))
+monthly_base_money = monthly_variation(request_money_data(15))
 
 
-# API Parameters for Base Money BCRA API endpoint
+base_money = request_money_data(15)
+deposits = request_money_data(21)
 
-id_variable = 15
-end_date = datetime.now().date()
-start_date = end_date - timedelta(days=365)
+m2 = base_money.join(deposits, how='inner', lsuffix='_base_money', rsuffix= '_deposits')
 
-# Requesting the base money data from the BCRA API and cleaning the resulting dataframe
-base_money = request_bcra(id_variable,start_date,end_date)
+m2['valor'] = m2['valor_base_money'] + m2['valor_deposits']
 
-base_money.drop('idVariable',axis=1,inplace=True)
+m2 = m2[['valor']]
 
-base_money['fecha'] = pd.to_datetime(base_money['fecha'])
+monthly_m2 = monthly_variation(m2)
 
-base_money.set_index('fecha', inplace=True)
-
-# Resample to get the last value of each month
-monthly_base_money = base_money.resample('ME').last()
-
-# Calculate the percentage variation month-over-month
-monthly_base_money['monthly_variation'] = monthly_base_money['valor'].pct_change()
-
-monthly_base_money.reset_index(inplace=True)
-
-monthly_base_money =  monthly_base_money[1:]
-
+# Combine both DataFrames
+combined_df = pd.concat([
+    monthly_base_money.assign(type='Base Money'),
+    monthly_deposits.assign(type='Bank Deposits'),
+    monthly_m2.assign(type='M2')
+])
 
 
 # API Parameters for Nominal Monetary Policy Rate BCRA API endpoint
@@ -261,27 +288,74 @@ display(HTML("""
 """))
 
 
-# Create the Base Money graph 
-
-base_money = px.bar(monthly_base_money, x='fecha', y='monthly_variation', title='Base Money - Monthly Var % ',
-                    labels={'fecha': 'Date', 'monthly_variation': 'Var %'})
+# Create the bar graph with specified colors
+money_agg = px.bar(
+    combined_df,
+    x='fecha',
+    y='monthly_variation',
+    color='type',  # This distinguishes between Base Money, M2, and Deposits
+    title='Base Money, M2, and Deposits - Monthly Var %',
+    labels={'fecha': 'Date', 'monthly_variation': 'Var %'},
+    barmode='group',  # Groups the bars side by side
+    color_discrete_map={
+        'Base Money': '#5A6ACF',
+        'M2': '#737B8B',
+        'Bank Deposits': '#E6E8EC'
+    }
+)
 
 # Determine the y-axis range to include all values, including negative ones
-y_min = min(monthly_base_money['monthly_variation']) - 0.05
-y_max = max(monthly_base_money['monthly_variation']) + 0.05
+y_min = combined_df['monthly_variation'].min() - 0.05
+y_max = combined_df['monthly_variation'].max() + 0.05
 
-base_money.update_layout(
-    font = dict(
-        family = "Poppins, sans-serif"
+# Update layout to add padding between bars and remove borders
+money_agg.update_layout(
+    font=dict(
+        family="Poppins, sans-serif"
+    ),
+    title=dict(
+        text="Base Money, M2, and Deposits - Monthly Var %",
+        yanchor='top',
+        xanchor='left',
+        y = 0.98
+    ),
+    margin=dict(t=100),
+    legend=dict(
+        title="Concepts",
+        title_font=dict(size=9, color="gray"),
+        orientation="v",
+        yanchor="top",
+        y=1.3,
+        xanchor="left",
+        x=0
     ),
     xaxis_title=None,
     yaxis_title=None,
     yaxis_tickformat=',.1%',
     plot_bgcolor='white',
+    bargroupgap=0.2,
     xaxis=dict(
         tickfont=dict(color='#737B8B'),
         showgrid=False,
-        zeroline=False
+        zeroline=False,
+        rangeslider=dict(
+            visible=True,
+            thickness=0.005,
+            bordercolor="lightgrey",
+            borderwidth=1
+                         ),
+        rangeselector=dict(
+            yanchor="top",
+            xanchor="left",
+            x = 0.7,
+            buttons=list([
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all")
+            ])
+        )
     ),
     yaxis=dict(
         range=[y_min, y_max],
@@ -296,30 +370,70 @@ base_money.update_layout(
     )
 )
 
-# Update bar color
-base_money.update_traces(marker_color='#5A6ACF')
-
+# Remove borders from bars by setting line width to 0
+money_agg.update_traces(marker=dict(line=dict(width=0)),hovertemplate='<b>Date:</b> %{x|%b %Y}<br><b>Monthly Var%:</b> %{y:.1%}<extra></extra>')
 
 # Create the Inflation graph
 
+# Create the Inflation graph and name "Nivel general" as "Total"
 inflation = px.line(ipc, x='Fecha', y='Nivel general', title='Inflation',
                     labels={'Fecha': 'Date', 'Nivel general': 'Inflation %'})
 
-y_min = min(ipc['Nivel general']) - 0.05
-y_max = max(ipc['Nivel general']) + 0.05
+# Update the name of "Nivel general" to "Total"
+inflation.update_traces(mode='lines',name='Total', line=dict(color='#5A6ACF'))
 
+# Add traces for "Nucleo", "Estacional", and "Regulados"
+inflation.add_traces([
+    dict(x=ipc['Fecha'], y=ipc['Núcleo'], mode='lines', name='Core', line=dict(color='#737B8B')),
+    dict(x=ipc['Fecha'], y=ipc['Estacional'], mode='lines', name='Seasonal', line=dict(color='#CDCFD2')),
+    dict(x=ipc['Fecha'], y=ipc['Regulados'], mode='lines', name='Regulated', line=dict(color='#86AAFF'))
+])
+
+# Ensure all traces are visible in the legend
+for trace in inflation.data:
+    trace.showlegend = True
+    trace.hovertemplate = '<b>Date:</b> %{x|%b %Y}<br><b>Monthly Inflation%:</b> %{y:.1%}<extra></extra>'
+    trace.visible = 'legendonly' if trace.name != 'Total' else True
+
+# Determine y-axis range
+y_min = min(ipc[['Nivel general', 'Núcleo', 'Estacional', 'Regulados']].min()) - 0.05
+y_max = max(ipc[['Nivel general', 'Núcleo', 'Estacional', 'Regulados']].max()) + 0.05
+
+end_date = ipc['Fecha'].max()
+start_date = end_date - timedelta(days=6*30)
+
+# Update layout
 inflation.update_layout(
-    font = dict(
-        family = "Poppins, sans-serif"
+    font=dict(
+        family="Poppins, sans-serif"
     ),
     xaxis_title=None,
     yaxis_title=None,
     yaxis_tickformat=',.1%',
     plot_bgcolor='white',
     xaxis=dict(
+        range=[start_date, end_date],
         tickfont=dict(color='#737B8B'),
         showgrid=False,
-        zeroline=False
+        zeroline=False,
+        rangeslider=dict(
+            visible=True,
+            thickness=0.005,
+            bordercolor="lightgrey",
+            borderwidth=1
+        ),
+        rangeselector=dict(
+            yanchor="top",
+            xanchor="left",
+            x = 0.7,
+            buttons=list([
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all")
+            ])
+        )
     ),
     yaxis=dict(
         range=[y_min, y_max],
@@ -331,10 +445,16 @@ inflation.update_layout(
         zeroline=True,
         zerolinecolor='lightgrey',
         ticksuffix="  "
+    ),
+    legend=dict(
+        x=-0,  # Adjust this to place the legend at the left margin
+        y=1.1,
+        xanchor='left',
+        yanchor='top',
+        title=None,  # Optionally remove the legend title
+        orientation="h"
     )
 )
-
-inflation.update_traces(line=dict(color='#5A6ACF'))
 
 
 
@@ -402,7 +522,7 @@ app.layout = html.Div(style={'backgroundColor': 'white'}, children=[
     html.Div(style={'width': '65%', 'display': 'inline-block', 'paddingRight': '20px', 'fontFamily': 'Poppins, sans-serif', 'marginRight': '5%'}, children=[
         dcc.Graph(
             id='base-money',
-            figure=base_money
+            figure=money_agg
         ),
         dcc.Graph(
             id='inflation-graph',
