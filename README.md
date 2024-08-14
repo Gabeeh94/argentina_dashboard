@@ -1,5 +1,7 @@
 **Government KPIs Web Dashboard**
 
+[Go to live dashboard](http://argentina-dashboard-env-1.eba-m4q4pumz.us-east-2.elasticbeanstalk.com/)
+
 Objective: Visualize different economic metrics for the Argentinian government in a Python powered Dash/Flask web dashboard using an AWS cloud backend.
 
 **The need for a web dashboard**
