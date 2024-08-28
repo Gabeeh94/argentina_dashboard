@@ -19,17 +19,17 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: "us-east-1"
+          aws-region: "us-east-2"
           mask-aws-account-id: "no"
 
       - name: Upload package to S3 bucket
-        run: aws s3 cp deploy_package.zip s3://elasticbeanstalk-us-east-2-590183872237/
+        run: aws s3 cp deploy_package.zip s3://arg-dashboard-deploy/
 
       - name: Create new ElasticBeanstalk Application Version
         run: |
           aws elasticbeanstalk create-application-version \
           --application-name Argentina-Dashboard \
-          --source-bundle S3Bucket="elasticbeanstalk-us-east-2-590183872237",S3Key="deploy_package.zip" \
+          --source-bundle S3Bucket="arg-dashboard-deploy",S3Key="deploy_package.zip" \
           --version-label "ver-${{ github.sha }}" \
           --description "commit-sha-${{ github.sha }}"
 
