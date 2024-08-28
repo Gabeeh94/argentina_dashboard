@@ -2,7 +2,7 @@ name: python_elb_deployment
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   deploy:
