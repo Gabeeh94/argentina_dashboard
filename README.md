@@ -115,23 +115,23 @@ To deploy the web dashboard using AWS Elastic Beanstalk, I took advantage of its
 
 -   I packaged the Dash application along with its dependencies into a single directory. This included the main Python script and a requirements.txt file specifying all necessary libraries.
 
-3.  **Environment Setup:**
+2.  **Environment Setup:**
 
 -   In the AWS Management Console, I created a new Elastic Beanstalk environment for the application, selecting the Python platform, which is compatible with Dash.
 
-5.  **Uploading the Application:**
+3.  **Uploading the Application:**
 
 -   After setting up the environment, I uploaded the packaged application. Elastic Beanstalk automatically provisions the necessary resources, such as EC2 instances and security groups.
 
-7.  **Configuration:**
+4.  **Configuration:**
 
 -   I configured environment settings to optimize performance, including instance type and scaling options, ensuring the application can handle varying loads efficiently.
 
-9.  **Deployment:**
+5.  **Deployment:**
 
 -   The application was deployed smoothly through Elastic Beanstalk, which initialized everything and made the dashboard accessible online.
 
-11. **Monitoring:**
+6. **Monitoring:**
 
 -   I utilized the Elastic Beanstalk dashboard to monitor application health, manage scaling, and view logs, which helped in maintaining optimal performance and quickly addressing any issues.
 
