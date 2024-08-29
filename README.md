@@ -1,4 +1,4 @@
-**Government KPIs Web Dashboard**
+**Argentina KPIs Web Dashboard**
 
 [Go to live dashboard](http://argentina-dashboard-env-1.eba-m4q4pumz.us-east-2.elasticbeanstalk.com/)
 
@@ -14,7 +14,7 @@ That's why I decided to take matters into my own hands and start a live web dash
 
 **Building Production-Level Dashboards**
 
-As a data analyst, I'm always using tools like PowerBI to make data available to stakeholders. But anyone who has used these tools extensively knows that building production-level dashboards can be quite a challenge. The benefits of PowerBI can also be its weaknesses: it's easy for someone with no experience to create something useful, but its high-level nature means it can't abstract as much as a pure programming language. It solves 90% of problems quickly, but the remaining 10% can be extremely difficult, requiring complex workarounds or proving impossible to address. And the lack of effective collaboration tools and robust version control just makes matters worse.
+As a data analyst, I'm always using tools like PowerBI to make data available to stakeholders. But anyone who has used these tools extensively knows that building production-level dashboards can be a challenge. The benefits of PowerBI can also be its weaknesses: it's easy for someone with no experience to create something useful, but its high-level nature means it can't abstract as much as a pure programming language. It solves 90% of problems quickly, but the remaining 10% can be extremely difficult, requiring complex workarounds or proving impossible to address. And the lack of effective collaboration tools and robust version control just makes matters worse.
 
 I use extensively python in my day-to-day tasks, so I thought, "There has to be a more programmatic way to create dashboards in python." And, of course, with Python, there are several libraries that can help. I decided to build my project using the Dash library. Streamlit is a simpler option, but I wanted the most customizable dashboard possible. Dash uses Plotly for graphs, so any data analyst familiar with Python can use it, and it wraps everything with Flask to create a simple web app.
 

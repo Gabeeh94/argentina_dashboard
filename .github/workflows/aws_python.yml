@@ -1,0 +1,37 @@
+name: python_elb_deployment
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Create ZIP deployment package
+        run: zip -r deploy_package.zip ./
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: "us-east-2"
+          mask-aws-account-id: "no"
+
+      - name: Upload package to S3 bucket
+        run: aws s3 cp deploy_package.zip s3://arg-dashboard-deploy/
+
+      - name: Create new ElasticBeanstalk Application Version
+        run: |
+          aws elasticbeanstalk create-application-version \
+          --application-name Argentina-Dashboard \
+          --source-bundle S3Bucket="arg-dashboard-deploy",S3Key="deploy_package.zip" \
+          --version-label "ver-${{ github.sha }}" \
+          --description "commit-sha-${{ github.sha }}"
+
+      - name: Deploy new ElasticBeanstalk Application Version
+        run: aws elasticbeanstalk update-environment --environment-name Argentina-Dashboard-env-1 --version-label "ver-${{ github.sha }}"
