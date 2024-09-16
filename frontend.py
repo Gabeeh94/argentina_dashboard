@@ -14,7 +14,11 @@ def create_layout():
     rem_12_month, real_policy_rate = get_rem_data(policy_rate)
     min_official_dollar = get_dollar_data()
     dollar_future = get_dollar_future()
-    exp_dev_adj_rate = calculate_exp_dev_adj_rate(min_official_dollar, dollar_future, policy_rate)
+
+    if min_official_dollar is not None and dollar_future is not None:
+        exp_dev_adj_rate = calculate_exp_dev_adj_rate(min_official_dollar, dollar_future, policy_rate)
+    else:
+        exp_dev_adj_rate = "N/A"  
 
     money_agg = create_money_agg_graph(combined_df)
     inflation = create_inflation_graph(ipc)
@@ -24,7 +28,26 @@ def create_layout():
             rel='stylesheet',
             href='https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap'
         ),
-        html.H1("Economic Dashboard", className='title'),
+        html.Div(className='sidebar', children=[
+            html.Div(className='logo-container', children=[
+                html.Img(src='/assets/logo.png', className='logo'),  
+                html.H2("Argentina KPIs", className='logo-text')
+            ]),
+            html.Div(className='menu-section', children=[
+                html.H4("Dashboards", className='menu-title'),
+                html.Ul(className='menu-list', children=[
+                    html.Li(html.A("Money", href="#", className='menu-item active')),
+                    html.Li(html.A("Fiscal (WIP)", href="#", className='menu-item')),
+                    html.Li(html.A("Financial (WIP)", href="#", className='menu-item')),
+                    html.Li(html.A("Real Economy (WIP)", href="#", className='menu-item')),
+                ]),
+                html.H4("Menu", className='menu-title'),
+                html.Ul(className='menu-list', children=[
+                    html.Li(html.A("Methodology", href="#", className='menu-item')),
+                    html.Li(html.A("Donations", href="#", className='menu-item')),
+                ])
+            ])
+        ]),
         html.Div(className='content-container', children=[
             dcc.Graph(
                 id='base-money',
@@ -37,29 +60,26 @@ def create_layout():
                 className='dash-graph'
             )
         ]),
-        html.Div(className='sidebar', children=[
+        html.Div(className='sidebar-right', children=[
             html.Div(className='stat-container', children=[
                 html.P(f'{monthly_policy_rate}', className='stat-value'),
-                html.Div(className='stat-circle'),
                 html.H4(['Monthly Nominal', html.Br(), 'Policy Rate'], className='stat-title')
             ]),
             html.Div(className='stat-container', children=[
                 html.P(f'{rem_12_month}', className='stat-value'),
-                html.Div(className='stat-circle'),
                 html.H4(['Expected Inflation', html.Br(), 'Next 12 Months'], className='stat-title')
             ]),
             html.Div(className='stat-container', children=[
                 html.P(f'{real_policy_rate}', className='stat-value'),
-                html.Div(className='stat-circle'),
                 html.H4(['Exp. Inflation Adjusted', html.Br(), 'Policy Rate'], className='stat-title')
             ]),
             html.Div(className='stat-container', children=[
                 html.P(f'{exp_dev_adj_rate}', className='stat-value'),
-                html.Div(className='stat-circle'),
                 html.H4(['Devaluation adjusted', html.Br(), 'Policy Rate'], className='stat-title')
             ]),
         ]),
     ])
+
 def create_money_agg_graph(combined_df):
     money_agg = px.bar(
         combined_df,
